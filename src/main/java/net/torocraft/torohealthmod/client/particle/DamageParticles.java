@@ -109,6 +109,13 @@ public class DamageParticles extends EntityFX {
                 * 0.008D;
         GL11.glScaled(-f1, -f1, f1);
         GL11.glDisable(GL11.GL_LIGHTING);
+
+        // Force full-bright lightmap while rendering the damage text
+        int prevBrightness = this.getBrightnessForRender(partialTicks);
+        int prevX = prevBrightness % 65536;
+        int prevY = prevBrightness / 65536;
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
+
         GL11.glEnable(GL11.GL_BLEND);
         OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
         final int j = mc.fontRenderer.getStringWidth(this.text) / 2;
@@ -117,6 +124,10 @@ public class DamageParticles extends EntityFX {
         mc.fontRenderer.drawStringWithShadow(this.text, -j, 0, this.color);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
+
+        // Restore previous lightmap brightness
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float) prevX, (float) prevY);
+
         GL11.glEnable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);

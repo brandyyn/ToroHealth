@@ -67,8 +67,34 @@ public class ConfigurationHandler {
         return config;
     }
 
-    private static int mapColor(String color) {
-        return switch (color) {
+        private static int mapColor(String color) {
+        if (color == null) {
+            return 0xFFFFFF;
+        }
+
+        String s = color.trim();
+
+        // Hex support:
+        // - "#RRGGBB"
+        // - "0xRRGGBB" / "0XRRGGBB"
+        // - "RRGGBB" (6 hex digits)
+        if (!s.isEmpty()) {
+            if (s.charAt(0) == '#') {
+                s = s.substring(1);
+            } else if (s.length() > 2 && (s.startsWith("0x") || s.startsWith("0X"))) {
+                s = s.substring(2);
+            }
+            if (s.matches("(?i)[0-9a-f]{6}")) {
+                try {
+                    return Integer.parseInt(s, 16);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
+        String key = color.trim().toUpperCase();
+
+        return switch (key) {
             case "RED" -> 0xFF0000;
             case "GREEN" -> 0x00FF00;
             case "BLUE" -> 0x0000FF;
@@ -76,6 +102,13 @@ public class ConfigurationHandler {
             case "ORANGE" -> 0xFFA500;
             case "BLACK" -> 0x000000;
             case "PURPLE" -> 0x960096;
+            case "WHITE" -> 0xFFFFFF;
+            case "GOLD" -> 0xFFD700;
+            case "LIME" -> 0x00FF00;
+            case "CYAN" -> 0x00FFFF;
+            case "MAGENTA" -> 0xFF00FF;
+            case "GRAY" -> 0x808080;
+            case "LIGHT_GRAY" -> 0xC0C0C0;
             default -> 0xFFFFFF;
         };
     }

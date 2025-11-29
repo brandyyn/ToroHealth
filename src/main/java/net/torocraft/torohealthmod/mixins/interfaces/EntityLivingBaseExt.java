@@ -5,4 +5,8 @@ public interface EntityLivingBaseExt {
     int getTorohealth$prevHealth();
 
     void setTorohealth$prevHealth(int torohealth$prevHealth);
+
+    int getTorohealth$lastDamageParticleTick();
+
+    void setTorohealth$lastDamageParticleTick(int torohealth$lastDamageParticleTick);
 }

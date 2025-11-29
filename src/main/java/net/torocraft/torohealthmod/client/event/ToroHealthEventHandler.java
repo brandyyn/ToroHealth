@@ -14,18 +14,31 @@ public class ToroHealthEventHandler {
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onLivingUpdate(LivingEvent.LivingUpdateEvent event) {
         final EntityLivingBase entity = event.entityLiving;
-        if (!entity.worldObj.isRemote) return;
-        final int prevHp = MathHelper.floor_float(((EntityLivingBaseExt) entity).getTorohealth$prevHealth());
-        final int hp = MathHelper.floor_float(entity.getHealth());
-        if (hp > prevHp + 2 && entity.ticksExisted < 5) {
-            // the mob just spawned, and it mistakenly
-            // renders their whole health as healing
+        if (!entity.worldObj.isRemote) {
             return;
         }
-        if (prevHp != hp) {
-            DamageParticles.spawnDamageParticle(entity, prevHp - hp);
-            ((EntityLivingBaseExt) entity).setTorohealth$prevHealth(hp);
+
+        final EntityLivingBaseExt ext = (EntityLivingBaseExt) entity;
+        final int prevHp = MathHelper.floor_float(ext.getTorohealth$prevHealth());
+        final int hp = MathHelper.floor_float(entity.getHealth());
+
+        // Avoid treating initial spawn sync as a giant heal
+        if (hp > prevHp + 2 && entity.ticksExisted < 5) {
+            ext.setTorohealth$prevHealth(hp);
+            return;
         }
+
+        if (hp == prevHp) {
+            return;
+        }
+
+        // Only show healing via client-side HP diff.
+        // All damage popoffs come from the server-synced true damage.
+        if (hp > prevHp) {
+            DamageParticles.spawnDamageParticle(entity, prevHp - hp);
+        }
+
+        ext.setTorohealth$prevHealth(hp);
     }
 
 }

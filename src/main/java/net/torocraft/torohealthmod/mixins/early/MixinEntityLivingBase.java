@@ -16,6 +16,9 @@ public abstract class MixinEntityLivingBase implements EntityLivingBaseExt {
     private int torohealth$prevHealth;
 
     @Unique
+    private int torohealth$lastDamageParticleTick;
+
+    @Unique
     public int getTorohealth$prevHealth() {
         return torohealth$prevHealth;
     }
@@ -25,11 +28,22 @@ public abstract class MixinEntityLivingBase implements EntityLivingBaseExt {
         this.torohealth$prevHealth = hp;
     }
 
+    @Unique
+    public int getTorohealth$lastDamageParticleTick() {
+        return torohealth$lastDamageParticleTick;
+    }
+
+    @Unique
+    public void setTorohealth$lastDamageParticleTick(int tick) {
+        this.torohealth$lastDamageParticleTick = tick;
+    }
+
     @ModifyArg(
             method = "<init>",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityLivingBase;setHealth(F)V"))
     private float torohealth$initHelth(float hp) {
         this.torohealth$prevHealth = MathHelper.floor_float(hp);
+        this.torohealth$lastDamageParticleTick = 0;
         return hp;
     }
 

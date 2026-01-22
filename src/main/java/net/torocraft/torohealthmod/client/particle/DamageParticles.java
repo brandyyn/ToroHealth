@@ -1,6 +1,8 @@
 package net.torocraft.torohealthmod.client.particle;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.particle.EntityFX;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -38,7 +40,10 @@ public class DamageParticles extends EntityFX {
     }
 
     public static void spawnDamageParticle(EntityLivingBase entity, int damage) {
-        if (isEntityNotVisible(entity)) return;
+        // Don't show damage/heal popoffs for the local player (self).
+        if (entity == mc.thePlayer) {
+            return;
+        }
         final double motionX = entity.worldObj.rand.nextGaussian() * 0.02;
         final double motionY = 0.5f;
         final double motionZ = entity.worldObj.rand.nextGaussian() * 0.02;
@@ -82,9 +87,76 @@ public class DamageParticles extends EntityFX {
         // returnLastUncollidableBlock)
     }
 
+
+
+/**
+ * Returns true if there is an opaque/solid block between the camera and this particle.
+ * Transparent blocks (like glass) do NOT occlude.
+ */
+private boolean isOccludedBySolidBlocks(float partialTicks) {
+    if (mc == null || mc.theWorld == null) {
+        return false;
+    }
+    final Entity view = mc.renderViewEntity;
+    if (view == null) {
+        return false;
+    }
+
+    final double camX = view.prevPosX + (view.posX - view.prevPosX) * (double) partialTicks;
+    final double camY = view.prevPosY + (view.posY - view.prevPosY) * (double) partialTicks + (double) view.getEyeHeight();
+    final double camZ = view.prevPosZ + (view.posZ - view.prevPosZ) * (double) partialTicks;
+
+    final double partX = this.prevPosX + (this.posX - this.prevPosX) * (double) partialTicks;
+    final double partY = this.prevPosY + (this.posY - this.prevPosY) * (double) partialTicks;
+    final double partZ = this.prevPosZ + (this.posZ - this.prevPosZ) * (double) partialTicks;
+
+    return hasOpaqueSolidBlockBetween(camX, camY, camZ, partX, partY, partZ);
+}
+
+private boolean hasOpaqueSolidBlockBetween(double x1, double y1, double z1, double x2, double y2, double z2) {
+    final double dx = x2 - x1;
+    final double dy = y2 - y1;
+    final double dz = z2 - z1;
+    final double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist <= 0.0001D) {
+        return false;
+    }
+
+    // Step along the ray. Smaller step = more accurate; 0.2 is plenty for visibility culling.
+    final double step = 0.2D;
+    final int steps = Math.max(1, (int) Math.ceil(dist / step));
+
+    for (int i = 0; i <= steps; i++) {
+        final double t = (double) i / (double) steps;
+        final double sx = x1 + dx * t;
+        final double sy = y1 + dy * t;
+        final double sz = z1 + dz * t;
+
+        final int bx = (int) Math.floor(sx);
+        final int by = (int) Math.floor(sy);
+        final int bz = (int) Math.floor(sz);
+
+        final Block block = mc.theWorld.getBlock(bx, by, bz);
+        if (block == null) {
+            continue;
+        }
+        // Ignore air and non-occluding blocks; occlude only on opaque + solid materials.
+        if (!mc.theWorld.isAirBlock(bx, by, bz)
+                && block.isOpaqueCube()
+                && block.getMaterial() != null
+                && block.getMaterial().isSolid()) {
+            return true;
+        }
+    }
+    return false;
+}
+
     @Override
     public void renderParticle(Tessellator tessellator, float partialTicks, float rotationX, float rotationZ,
             float rotationYZ, float rotationXY, float rotationXZ) {
+        if (!ConfigurationHandler.showThroughWalls && this.isOccludedBySolidBlocks(partialTicks)) {
+            return;
+        }
         final float relativeX;
         final float relativeY;
         final float relativeZ;
